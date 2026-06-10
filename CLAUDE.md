@@ -39,6 +39,11 @@ Each run writes `output_str/K<K>_rep<REP>_seed<SEED>_f` (the STRUCTURE result fi
 3. **Non-destructive runtime config** — generates `output_str/mainparams.used` from the committed `mainparams` template with INFILE/NUMINDS/NUMLOCI/MAXPOPS substituted, and passes it to STRUCTURE via `-m` (with `-e extraparams`). The committed `mainparams` is never mutated — keep it that way.
 4. **OS detection** — selects `./structure` (macOS/Linux/WSL) or `./structure.exe` (Git Bash/MSYS/Cygwin), overridable via `STRUCTURE_BIN`.
 5. **Seeds** — per-task seed is `BASESEED + task` (passed via `-D`); the chosen `BASESEED` is written to `output_str/seed.txt` each run so it can be reproduced (`BASESEED=$(cat output_str/seed.txt) ...`).
+6. **Single-task mode** — if `TASK_ID` is set, the script runs exactly that one task (writing its own `mainparams.used.task<id>` to avoid races, and skipping the `seed.txt` write) instead of the local parallel loop. This is the seam the HPC array job uses.
+
+## HPC (`run_structure.slurm`)
+
+A SLURM array job (one task per K×rep) that calls `run_structure.sh` with `TASK_ID=$SLURM_ARRAY_TASK_ID`, reusing all the derivation/seed logic. Key invariants when editing: `--array` range must equal `N_K * N_REP`; `BASESEED` is tied to `$SLURM_ARRAY_JOB_ID` so all tasks share one seed; the bundled binaries are macOS/Windows only, so `STRUCTURE_BIN` must point at a Linux build on a cluster.
 
 ## Preparing input (`scripts/prepare_structure_input.R`)
 

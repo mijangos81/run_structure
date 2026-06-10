@@ -147,10 +147,19 @@ for f in "$MAINPARAMS" "$EXTRAPARAMS"; do
   fi
 done
 
+# Single-task mode: if TASK_ID is set (e.g. from an HPC array job), run exactly
+# that one task instead of the local parallel loop. See run_structure.slurm.
+TASK_ID="${TASK_ID:-}"
+
 # Build the mainparams actually used for this run: a copy of the template with
 # INFILE / NUMINDS / NUMLOCI / MAXPOPS filled in from the data. The committed
-# `mainparams` is left untouched so it stays a clean, editable template.
-RUN_MAINPARAMS="${OUTBASE}/mainparams.used"
+# `mainparams` is left untouched so it stays a clean, editable template. In
+# single-task mode each task writes its own copy to avoid clobbering each other.
+if [[ -n "$TASK_ID" ]]; then
+  RUN_MAINPARAMS="${OUTBASE}/mainparams.used.task${TASK_ID}"
+else
+  RUN_MAINPARAMS="${OUTBASE}/mainparams.used"
+fi
 sed -E \
   -e "s|^#define[[:space:]]+INFILE[[:space:]]+.*$|#define INFILE ${INFILE}|" \
   -e "s|^#define[[:space:]]+NUMINDS[[:space:]]+.*$|#define NUMINDS ${NUMINDS}|" \
@@ -178,9 +187,13 @@ echo
 # each task gets SEED = BASESEED + task (passed via -D). To repeat this exact
 # run later, re-run with the BASESEED saved here, e.g.:
 #     BASESEED=$(cat output_str/seed.txt) N_K=8 N_REP=10 ./run_structure.sh 8
-echo "$BASESEED" > "${OUTBASE}/seed.txt"
-echo "Recorded BASESEED to ${OUTBASE}/seed.txt (use it to reproduce this run)."
-echo
+# In single-task (array) mode, all tasks share one BASESEED (set it in the job
+# script, e.g. to the array job id) so don't let them race on the same file.
+if [[ -z "$TASK_ID" ]]; then
+  echo "$BASESEED" > "${OUTBASE}/seed.txt"
+  echo "Recorded BASESEED to ${OUTBASE}/seed.txt (use it to reproduce this run)."
+  echo
+fi
 
 run_task() {
   local TASK="$1"
@@ -205,6 +218,19 @@ run_task() {
     >"$OUTLOG" 2>"$ERRLOG"
 }
 
+# Single-task mode (HPC array job): run just this task and exit.
+if [[ -n "$TASK_ID" ]]; then
+  if (( TASK_ID < 1 || TASK_ID > TOTAL_TASKS )); then
+    echo "ERROR: TASK_ID=$TASK_ID out of range 1..$TOTAL_TASKS (= N_K*N_REP)." >&2
+    exit 1
+  fi
+  run_task "$TASK_ID"
+  rm -f "$RUN_MAINPARAMS"          # per-task copy no longer needed
+  echo "Task ${TASK_ID} finished. End: $(date)"
+  exit 0
+fi
+
+# Local mode: run all tasks, up to CORES at a time.
 max_jobs="$CORES"
 
 for TASK in $(seq 1 "$TOTAL_TASKS"); do

@@ -17,7 +17,8 @@ dataset — 81 individuals, 1000 SNPs, 3 populations) lets you run it immediatel
 | `extraparams` | STRUCTURE advanced model settings (admixture, alpha priors). |
 | `*.str` | Input data in STRUCTURE format (the bundled example is `platypus.str`). |
 | `scripts/prepare_structure_input.R` | Builds a `.str` from a VCF / DArT report / genlight via dartRverse. |
-| `structure` | STRUCTURE binary for macOS / Linux. |
+| `run_structure.slurm` | SLURM array-job script for running on an HPC cluster. |
+| `structure` | STRUCTURE binary for macOS. |
 | `structure.exe` | STRUCTURE binary for Windows (Git Bash). |
 
 ## How to run it
@@ -134,6 +135,44 @@ writes `output_str/mainparams.used` (the exact config used) and
 These `*_f` files are the input for downstream analysis — Evanno ΔK / best-K
 selection and plotting (e.g. with the `dartRverse` R packages, CLUMPAK, or
 STRUCTURE Harvester).
+
+## Running on an HPC cluster
+
+For a full K × replicate sweep, a cluster is far faster — every (K, replicate)
+job is independent, so they can run as a **SLURM array** with one job per task.
+`run_structure.slurm` does this by calling `run_structure.sh` in single-task
+mode (`TASK_ID=$SLURM_ARRAY_TASK_ID`), so all the input auto-detection, dimension
+derivation and seeding are shared with the local runner.
+
+**Before submitting:**
+
+1. **Provide a Linux STRUCTURE binary.** The bundled `structure` / `structure.exe`
+   are macOS / Windows builds and will not run on a Linux cluster. Compile
+   STRUCTURE for Linux (or `module load` it if your cluster provides it) and set
+   `STRUCTURE_BIN` to it in `run_structure.slurm`.
+2. **Prepare the input** (`platypus.str`, or your own `.str` / the R script).
+3. **Edit `run_structure.slurm`** — set `--partition` / `--account` for your
+   cluster, and keep the three sweep settings consistent:
+   - `#SBATCH --array=1-<N_K*N_REP>`  (e.g. `1-80` for `N_K=8`, `N_REP=10`)
+   - `export N_K=...` and `export N_REP=...`
+
+**Submit:**
+
+```bash
+mkdir -p logs_structure        # SLURM needs the log dir to exist
+sbatch run_structure.slurm
+```
+
+Each array task writes its result to `output_str/K<K>_rep<REP>_seed<SEED>_f` and
+its SLURM logs to `logs_structure/`. All tasks share one base seed
+(`BASESEED=$SLURM_ARRAY_JOB_ID`) so each task's seed (`BASESEED + task`) is stable
+and the whole run is reproducible — re-submit with the same `BASESEED` to repeat
+it. STRUCTURE is single-threaded, so the script requests 1 CPU per task and pins
+the math libraries to one thread; scale throughput with the array size, not CPUs
+per task.
+
+> Single fat node instead of an array? Just run the local command inside one job:
+> `./run_structure.sh $SLURM_CPUS_PER_TASK` with a high `--cpus-per-task`.
 
 ## Notes
 
