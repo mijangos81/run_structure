@@ -1,0 +1,26 @@
+// mainparams - STRUCTURE run parameters (template).
+//
+// The three data-specific values below (INFILE, NUMINDS, NUMLOCI) are filled
+// in automatically by run_structure.sh from your .str file, so you normally do
+// NOT need to edit them - the values here are just defaults / placeholders.
+// Everything else (PLOIDY, MISSING, the data layout, BURNIN, NUMREPS, ...) is
+// the model/MCMC configuration: edit it here to suit your dataset.
+
+#define INFILE   ddrad_structure_input_noheader.str  // auto-filled by run_structure.sh
+#define OUTFILE  out                                 // overridden per run (-o)
+#define NUMINDS  251                                 // auto-filled by run_structure.sh
+#define NUMLOCI  4963                                // auto-filled by run_structure.sh
+
+#define PLOIDY        2
+#define MISSING       -9
+#define ONEROWPERIND  0     // 0 = two rows per individual, 1 = one row
+#define LABEL         1     // 1 = first column is an individual label
+#define POPDATA       1     // 1 = a column gives a predefined population code
+#define POPFLAG       0
+#define LOCDATA       0
+#define PHENOTYPE     0
+#define EXTRACOLS     0
+
+#define MAXPOPS   8         // max K; set to N_K by run_structure.sh
+#define BURNIN    50000     // MCMC burn-in length
+#define NUMREPS   100000    // MCMC reps after burn-in

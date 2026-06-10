@@ -1,0 +1,23 @@
+#define NOADMIX 0
+#define LINKAGE 0
+#define USEPOPINFO 0
+#define FREQSCORR 1
+#define INFERALPHA 1
+#define ALPHA 1.0
+// #define POPALPHASAME 1
+#define UNIFPRIORALPHA 1
+#define ALPHAMAX 10.0
+#define ALPHAPRIORA 0.05
+#define ALPHAPRIORB 0.5
+#define LOG10RMIN -4.0
+#define LOG10RMAX 1.0
+#define GENSBACK 2
+#define MIGRPRIOR 0.05
+#define PRINTLIKES 1
+#define PRINTKLD 0
+#define PRINTLAMBDA 0
+#define LAMBDA 1.0
+#define COMPUTEPROB 1
+#define ADMBURNIN 5000
+#define ALPHAPROPSD 0.025
+

@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# R session
+*.Rcheck/
+*.tar.gz
+
+# Quarto render artefacts
+*_files/
+*_cache/
+*.html
+*.pdf
+*.docx
+!articles/*.pdf
+!reports/*.pdf
+!reports/*.docx
+!reports/*.html
+
+# Obsidian
+.obsidian/
+
+# Data (uncomment if data should never be committed)
+# data/
+# outputs/
+# input_files/
