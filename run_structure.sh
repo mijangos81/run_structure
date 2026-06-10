@@ -94,15 +94,22 @@ EXTRACOLS="$(get_def EXTRACOLS 0)"
 # Number of leading (non-genotype) columns in each data row.
 LEADCOLS="${LEADCOLS:-$(( LABEL + POPDATA + POPFLAG + LOCDATA + PHENOTYPE + EXTRACOLS ))}"
 
-# Extra header rows before the data (marker names, etc.); usually 0 here.
-HEADERROWS="${HEADERROWS:-0}"
+# Header rows before the data: STRUCTURE adds one row each for marker names,
+# recessive alleles and map distances. gl2structure writes a marker-name row,
+# so MARKERNAMES 1 -> one header row to skip. Overridable via HEADERROWS.
+MARKERNAMES="$(get_def MARKERNAMES 0)"
+RECESSIVEALLELES="$(get_def RECESSIVEALLELES 0)"
+MAPDISTANCES="$(get_def MAPDISTANCES 0)"
+HEADERROWS="${HEADERROWS:-$(( MARKERNAMES + RECESSIVEALLELES + MAPDISTANCES ))}"
 
 ###############################################################################
 # Derive NUMINDS / NUMLOCI from the input file (unless overridden)
 ###############################################################################
 NROWS="$(grep -c '' "$INFILE")"          # counts lines even without trailing \n
 DATAROWS=$(( NROWS - HEADERROWS ))
-NCOLS="$(awk 'NF{print NF; exit}' "$INFILE")"
+# Column count from the first DATA row (skip header rows): a marker-name header
+# has no leading columns, so counting it would undercount NUMLOCI.
+NCOLS="$(awk -v skip="$HEADERROWS" 'NR>skip && NF{print NF; exit}' "$INFILE")"
 
 if [[ -z "${NUMINDS:-}" ]]; then
   if [[ "$ONEROWPERIND" -eq 1 ]]; then
@@ -165,6 +172,14 @@ echo "OUTBASE:       $OUTBASE"
 echo "LOGDIR:        $LOGDIR"
 echo "BASESEED:      $BASESEED"
 echo "Start:         $(date)"
+echo
+
+# Record the seed so the run is reproducible. STRUCTURE's MCMC is stochastic;
+# each task gets SEED = BASESEED + task (passed via -D). To repeat this exact
+# run later, re-run with the BASESEED saved here, e.g.:
+#     BASESEED=$(cat output_str/seed.txt) N_K=8 N_REP=10 ./run_structure.sh 8
+echo "$BASESEED" > "${OUTBASE}/seed.txt"
+echo "Recorded BASESEED to ${OUTBASE}/seed.txt (use it to reproduce this run)."
 echo
 
 run_task() {

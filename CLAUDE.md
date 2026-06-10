@@ -31,13 +31,18 @@ Each run writes `output_str/K<K>_rep<REP>_seed<SEED>_f` (the STRUCTURE result fi
 `run_structure.sh` is what makes this dataset-agnostic — understand this before editing it:
 
 1. **Input auto-detection** — uses the single `*.str` file in the folder, or `INFILE=/path/to/file.str`.
-2. **Dimension derivation** — reads the data layout from `mainparams` (via `get_def`) and computes:
-   - `NUMINDS = data_rows / (ONEROWPERIND ? 1 : 2)`
-   - `NUMLOCI = ncols − (LABEL + POPDATA + POPFLAG + LOCDATA + PHENOTYPE + EXTRACOLS)`
-   - Both honour env overrides (`NUMINDS`, `NUMLOCI`, `LEADCOLS`, `HEADERROWS`).
+2. **Dimension derivation (header-aware)** — reads the data layout from `mainparams` (via `get_def`) and computes:
+   - `HEADERROWS = MARKERNAMES + RECESSIVEALLELES + MAPDISTANCES` (gl2structure writes a marker-name header → `MARKERNAMES 1`).
+   - `NUMINDS = (NROWS − HEADERROWS) / (ONEROWPERIND ? 1 : 2)`
+   - `NUMLOCI = ncols(first data row) − (LABEL + POPDATA + POPFLAG + LOCDATA + PHENOTYPE + EXTRACOLS)` — column count is taken from the first row *after* the header (a marker-name row has no lead columns, so counting it would undercount loci).
+   - All honour env overrides (`NUMINDS`, `NUMLOCI`, `LEADCOLS`, `HEADERROWS`).
 3. **Non-destructive runtime config** — generates `output_str/mainparams.used` from the committed `mainparams` template with INFILE/NUMINDS/NUMLOCI/MAXPOPS substituted, and passes it to STRUCTURE via `-m` (with `-e extraparams`). The committed `mainparams` is never mutated — keep it that way.
 4. **OS detection** — selects `./structure` (macOS/Linux/WSL) or `./structure.exe` (Git Bash/MSYS/Cygwin), overridable via `STRUCTURE_BIN`.
-5. Per-task seed is `BASESEED + task`; set `BASESEED` to reproduce a whole run.
+5. **Seeds** — per-task seed is `BASESEED + task` (passed via `-D`); the chosen `BASESEED` is written to `output_str/seed.txt` each run so it can be reproduced (`BASESEED=$(cat output_str/seed.txt) ...`).
+
+## Preparing input (`scripts/prepare_structure_input.R`)
+
+Builds a `.str` from a genlight via dartRverse `gl2structure()`. Shows `gl.read.vcf()` / `gl.read.dart()` as the loaders; the worked example uses `platypus.gl` (81 inds, 1000 SNPs, 3 pops) and writes `platypus.str` to the repo root (run it from there). It passes `add.columns = as.integer(pop(gl))` so the population code becomes a leading column (→ `POPDATA 1`), and calls `set.seed()` for reproducible QC. The committed `mainparams` defaults match this output exactly. Requires R with `dartR.base`/`dartRverse` installed.
 
 Invariant to preserve: `mainparams` stays a clean, human-editable template (model/MCMC settings); all data-specific values are filled in at runtime. STRUCTURE echoes `NUMINDS`/`NUMLOCI`/`DATAFILE` into each `_f` file — use that to verify ingestion after changes.
 

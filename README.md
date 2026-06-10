@@ -5,6 +5,9 @@ This folder runs [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structu
 parallel on a single computer. It works on macOS, Linux, and Windows (via Git
 Bash). No installation is needed — the STRUCTURE binaries are included.
 
+A bundled example input (`platypus.str`, generated from the `platypus.gl`
+dataset — 81 individuals, 1000 SNPs, 3 populations) lets you run it immediately.
+
 ## What's in this folder
 
 | File | Purpose |
@@ -12,7 +15,8 @@ Bash). No installation is needed — the STRUCTURE binaries are included.
 | `run_structure.sh` | The launcher. Runs all K × replicate jobs in parallel. |
 | `mainparams` | STRUCTURE model/MCMC settings (burn-in, ploidy, data layout). |
 | `extraparams` | STRUCTURE advanced model settings (admixture, alpha priors). |
-| `*.str` | Your input data in STRUCTURE format (no header row). |
+| `*.str` | Input data in STRUCTURE format (the bundled example is `platypus.str`). |
+| `scripts/prepare_structure_input.R` | Builds a `.str` from a VCF / DArT report / genlight via dartRverse. |
 | `structure` | STRUCTURE binary for macOS / Linux. |
 | `structure.exe` | STRUCTURE binary for Windows (Git Bash). |
 
@@ -48,7 +52,7 @@ All options are set as environment variables before the command. Defaults shown.
 | (1st argument) | `8` | Max jobs to run at once (≈ number of cores). |
 | `N_K` | `8` | Run K = 1 … `N_K`. |
 | `N_REP` | `10` | Replicates per K. |
-| `BASESEED` | clock time | Set a fixed number to reproduce a previous run exactly. |
+| `BASESEED` | clock time | Set a fixed number to reproduce a previous run exactly (see *Seeds*). |
 | `INFILE` | the `.str` in this folder | Path to the input file (only needed if you have several). |
 | `OUTBASE` | `./output_str` | Where result files are written. |
 | `LOGDIR` | `./logs_structure` | Where per-job logs are written. |
@@ -62,23 +66,55 @@ N_K=3 N_REP=2 ./run_structure.sh 4
 N_K=8 N_REP=10 BASESEED=12345 ./run_structure.sh 8
 ```
 
-## Using your own data
+## Seeds and reproducibility
 
-To run a different dataset, just **drop your own STRUCTURE-format `.str` file
-into this folder** (and remove or keep the existing one — if there is exactly
-one `.str` file it is picked up automatically; otherwise set `INFILE`).
+STRUCTURE's MCMC is stochastic, so a run is only reproducible if you control the
+seed. This toolkit handles seeds at two levels:
 
-- The script reads the **number of individuals** and **number of loci**
-  directly from your file and fills them into STRUCTURE for you — you do **not**
-  need to edit `NUMINDS` / `NUMLOCI` by hand.
-- It assumes the default layout in `mainparams`: **two rows per individual**
-  (`ONEROWPERIND 0`), with **2 leading columns** (an individual label + a
-  population code), and **no header row**.
-- If your file uses a different layout, edit `mainparams` (e.g. set
-  `ONEROWPERIND 1`, `LABEL`, `POPDATA`, `EXTRACOLS`) — the script honours those
-  settings when computing the dimensions. You can also override the auto-derived
-  values directly, e.g. `NUMINDS=300 NUMLOCI=5000 ./run_structure.sh 8`, or set
-  `HEADERROWS=1` if your file has a marker-name header row.
+- **STRUCTURE run seed.** The script picks a `BASESEED` (the clock time by
+  default) and gives task *t* the seed `BASESEED + t` (passed to STRUCTURE via
+  `-D`). Every K × replicate therefore gets a distinct, deterministic seed.
+- **It records the seed.** At the start of each run the chosen `BASESEED` is
+  written to `output_str/seed.txt`. To reproduce an entire run later, pass that
+  value back in:
+  ```bash
+  BASESEED=$(cat output_str/seed.txt) N_K=8 N_REP=10 ./run_structure.sh 8
+  ```
+  Same `BASESEED` + same input + same `mainparams`/`extraparams` ⇒ identical
+  results.
+- **Input-prep seed.** If you build your `.str` with the R script, it calls
+  `set.seed()` so any stochastic QC step (random tie-breaking, sub-sampling) is
+  also reproducible. This is independent of STRUCTURE's run seed.
+
+## Preparing an input file (your own data)
+
+You have two options.
+
+**A. Drop in a ready-made `.str`.** Put a STRUCTURE-format file in this folder.
+If there is exactly one `.str` it is picked up automatically; otherwise set
+`INFILE=/path/to/file.str`.
+
+**B. Build one from a VCF or DArT report** with dartRverse. Edit and run the
+example script (requires R with `dartRverse` / `dartR.base` installed):
+```bash
+Rscript scripts/prepare_structure_input.R
+```
+It shows how to load data with `gl.read.vcf()` or `gl.read.dart()` and exports
+to STRUCTURE format with `gl2structure()`. As shipped it uses the `platypus.gl`
+example and writes `platypus.str` to this folder, ready to run.
+
+**The script reads the number of individuals and loci directly from your file**
+and fills `NUMINDS` / `NUMLOCI` into STRUCTURE for you — you never edit them by
+hand. It honours the data-layout flags in `mainparams` when doing so:
+
+- The defaults match `gl2structure()` output: a **marker-name header row**
+  (`MARKERNAMES 1`), **two rows per individual** (`ONEROWPERIND 0`), and **two
+  leading columns** (individual label + population code; `LABEL 1`, `POPDATA 1`).
+- For a different layout, edit `mainparams` (`ONEROWPERIND`, `MARKERNAMES`,
+  `LABEL`, `POPDATA`, `EXTRACOLS`, …) — the script recomputes the dimensions
+  from those flags. You can also override directly, e.g.
+  `NUMINDS=300 NUMLOCI=5000 ./run_structure.sh 8`, or force the number of header
+  rows with `HEADERROWS=1`.
 
 Edit `mainparams` / `extraparams` to change the model and MCMC settings
 (burn-in length, number of reps, admixture model, etc.).
@@ -92,7 +128,8 @@ output_str/K<K>_rep<REP>_seed<SEED>_f      # the main STRUCTURE results file
 ```
 
 Per-job console logs (stdout/stderr) go to `logs_structure/`. The script also
-writes `output_str/mainparams.used`, the exact config used for the run.
+writes `output_str/mainparams.used` (the exact config used) and
+`output_str/seed.txt` (the `BASESEED` for reproducing the run).
 
 These `*_f` files are the input for downstream analysis — Evanno ΔK / best-K
 selection and plotting (e.g. with the `dartRverse` R packages, CLUMPAK, or
