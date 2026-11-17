@@ -20,4 +20,7 @@
 #define COMPUTEPROB 1
 #define ADMBURNIN 5000
 #define ALPHAPROPSD 0.025
+#define RANDOMIZE 0
+// RANDOMIZE 0: use the seed given with -D. With RANDOMIZE 1 (STRUCTURE's default)
+// the seed comes from the clock and -D is ignored. run_structure.sh forces 0 anyway.
 

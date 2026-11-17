@@ -75,6 +75,14 @@ seed. This toolkit handles seeds at two levels:
 - **STRUCTURE run seed.** The script picks a `BASESEED` (the clock time by
   default) and gives task *t* the seed `BASESEED + t` (passed to STRUCTURE via
   `-D`). Every K × replicate therefore gets a distinct, deterministic seed.
+- **`RANDOMIZE` is forced to 0.** STRUCTURE uses the `-D` seed only when
+  `RANDOMIZE` is 0. With `RANDOMIZE 1`, its default, it takes the seed from the
+  system clock and ignores `-D`, so replicates started in the same second run
+  identical chains (same seed, same LnP) and the seed in the file name is not the
+  one used. The script deletes any `RANDOMIZE` line from your `mainparams` and
+  `extraparams` and passes STRUCTURE copies with `RANDOMIZE 0`
+  (`output_str/extraparams.used`). Check the `SEED=` value in a `_f` file: it
+  should match the seed in its name.
 - **It records the seed.** At the start of each run the chosen `BASESEED` is
   written to `output_str/seed.txt`. To reproduce an entire run later, pass that
   value back in:
