@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-A portable, dataset-agnostic toolkit to run Pritchard's **STRUCTURE** for a K × replicate sweep on a single machine (macOS / Linux / Windows Git Bash). The whole tool is the Bash launcher `run_structure.sh` plus STRUCTURE's two config files; the STRUCTURE binaries are committed so no installation is needed. This is a standalone CLI tool, not an R/dartRverse analysis project (the empty `articles/`, `data/`, `scripts/`, etc. folders come from the project skeleton and are unused by the tool itself).
+A portable, dataset-agnostic toolkit to run Pritchard's **STRUCTURE** for a K × replicate sweep on a single machine (macOS / Linux / Windows Git Bash). The whole tool is the Bash launcher `run_structure.sh` plus STRUCTURE's two config files; STRUCTURE itself is not redistributed (no licence permits it): each user downloads the 2.3.4 package "without front end" and copies `structure` / `structure.exe` into the repo root, where `.gitignore` excludes it. Never commit those binaries. This is a standalone CLI tool, not an R/dartRverse analysis project (the empty `articles/`, `data/`, `scripts/`, etc. folders come from the project skeleton and are unused by the tool itself).
 
 `KNOWLEDGE.md` and `reports/` are personal working files: gitignored and kept only locally, because the repo is being prepared for public release. Write to them as usual, but do not `git add -f` them.
 
@@ -45,7 +45,7 @@ Each run writes `output_str/K<K>_rep<REP>_seed<SEED>_f` (the STRUCTURE result fi
 
 ## HPC (`run_structure.slurm`)
 
-A SLURM array job (one task per K×rep) that calls `run_structure.sh` with `TASK_ID=$SLURM_ARRAY_TASK_ID`, reusing all the derivation/seed logic. Key invariants when editing: `--array` range must equal `N_K * N_REP`; `BASESEED` is tied to `$SLURM_ARRAY_JOB_ID` so all tasks share one seed; the bundled binaries are macOS/Windows only, so `STRUCTURE_BIN` must point at a Linux build on a cluster.
+A SLURM array job (one task per K×rep) that calls `run_structure.sh` with `TASK_ID=$SLURM_ARRAY_TASK_ID`, reusing all the derivation/seed logic. Key invariants when editing: `--array` range must equal `N_K * N_REP`; `BASESEED` is tied to `$SLURM_ARRAY_JOB_ID` so all tasks share one seed; on a cluster `STRUCTURE_BIN` must point at a Linux build, and the official Linux console build is 32-bit, so it needs 32-bit system libraries (otherwise build from the C source).
 
 ## Preparing input (`scripts/prepare_structure_input.R`)
 

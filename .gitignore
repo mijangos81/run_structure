@@ -23,6 +23,10 @@
 KNOWLEDGE.md
 reports/
 
+# STRUCTURE program: each user downloads it (not redistributed here)
+/structure
+/structure.exe
+
 # STRUCTURE run artifacts
 output_str/
 output_test/

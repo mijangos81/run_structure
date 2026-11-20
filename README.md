@@ -3,7 +3,8 @@
 This folder runs [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structure.html)
 (Pritchard et al.) for a range of K values, with several replicates each, in
 parallel on a single computer. It works on macOS, Linux, and Windows (via Git
-Bash). No installation is needed — the STRUCTURE binaries are included.
+Bash). STRUCTURE itself is not included: download it once before the first run
+(see *Installing STRUCTURE*).
 
 A bundled example input (`platypus.str`, generated from `platypus.gl`, the
 platypus test dataset in the `dartR.data` R package — 81 individuals, 1000 SNPs,
@@ -19,8 +20,46 @@ platypus test dataset in the `dartR.data` R package — 81 individuals, 1000 SNP
 | `*.str` | Input data in STRUCTURE format (the bundled example is `platypus.str`). |
 | `scripts/prepare_structure_input.R` | Builds a `.str` from a VCF / DArT report / genlight via dartRverse. |
 | `run_structure.slurm` | SLURM array-job script for running on an HPC cluster. |
-| `structure` | STRUCTURE binary for macOS. |
-| `structure.exe` | STRUCTURE binary for Windows (Git Bash). |
+| `structure` / `structure.exe` | The STRUCTURE program. Not included: you download it (see below). |
+
+## Installing STRUCTURE
+
+STRUCTURE is not redistributed here. Download version 2.3.4 from the
+[Pritchard lab download page](https://web.stanford.edu/group/pritchardlab/structure_software/release_versions/v2.3.4/html/structure.html).
+Under **"Download package without front end"**, pick your system. Do not use
+the packages under "Download package with graphical front end": those are the
+point-and-click version, and this toolkit runs the command-line program.
+
+| Your system | Package (without front end) | Program to copy |
+|-------------|-----------------------------|-----------------|
+| macOS | Mac OS X (Intel processor) · `structure_mac_console.tar.gz` | `console/structure` |
+| Linux, WSL, HPC cluster | Linux · `structure_linux_console.tar.gz` | `console/structure` |
+| Windows (Git Bash) | DOS/Windows · `structure_windows_console.zip` | `console/structure.exe` |
+
+Unpack the package and copy **only the program** into this folder. The package
+also contains its own `mainparams` and `extraparams`; don't copy those, because
+they would replace this toolkit's settings. On macOS or Linux:
+
+```bash
+tar -xzf structure_mac_console.tar.gz      # or structure_linux_console.tar.gz
+cp console/structure .
+chmod +x structure
+```
+
+On Windows, unzip `structure_windows_console.zip` and copy `console/structure.exe`
+into this folder. To keep the program somewhere else, skip the copy and set
+`STRUCTURE_BIN=/path/to/structure` when you run the script.
+
+If the program won't start:
+
+- **macOS says the developer cannot be verified:** run
+  `xattr -d com.apple.quarantine structure`.
+- **Apple Silicon Mac, "Bad CPU type in executable":** the program is an Intel
+  build and needs Rosetta 2: `softwareupdate --install-rosetta --agree-to-license`.
+- **Linux, "No such file or directory" although the file is there:** the Linux
+  build is 32-bit and the machine lacks 32-bit system libraries. Build STRUCTURE
+  from the C source on the same download page (unpack it and run `make`), or use
+  your cluster's module if it has one.
 
 ## How to run it
 
@@ -155,10 +194,11 @@ derivation and seeding are shared with the local runner.
 
 **Before submitting:**
 
-1. **Provide a Linux STRUCTURE binary.** The bundled `structure` / `structure.exe`
-   are macOS / Windows builds and will not run on a Linux cluster. Compile
-   STRUCTURE for Linux (or `module load` it if your cluster provides it) and set
-   `STRUCTURE_BIN` to it in `run_structure.slurm`.
+1. **Provide a Linux STRUCTURE program.** Download the Linux package without
+   front end (see *Installing STRUCTURE*) and copy `console/structure` into the
+   project folder on the cluster, or `module load` STRUCTURE if your cluster
+   provides it and set `STRUCTURE_BIN` in `run_structure.slurm`. The Linux build
+   is 32-bit; if it won't start, build it from the C source.
 2. **Prepare the input** (`platypus.str`, or your own `.str` / the R script).
 3. **Edit `run_structure.slurm`** — set `--partition` / `--account` for your
    cluster, and keep the three sweep settings consistent:

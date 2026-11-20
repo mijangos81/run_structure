@@ -34,9 +34,11 @@ export N_REP=10
 # stable and the whole run is reproducible (re-submit with the same value).
 export BASESEED="${SLURM_ARRAY_JOB_ID}"
 
-# The bundled `structure` / `structure.exe` are macOS / Windows binaries and will
-# NOT run on a Linux cluster. Point STRUCTURE_BIN at a Linux build (compile from
-# https://web.stanford.edu/group/pritchardlab/structure.html, or `module load`).
+# STRUCTURE is not bundled. Use the Linux package "without front end" from the
+# STRUCTURE 2.3.4 download page (README, "Installing STRUCTURE"): copy
+# console/structure into this folder, or point STRUCTURE_BIN at it. That build is
+# 32-bit; if it won't start on your cluster, build it from the C source or
+# `module load` it.
 # export STRUCTURE_BIN=/path/to/linux/structure
 ## module load structure        # if your cluster provides it
 

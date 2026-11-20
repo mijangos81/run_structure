@@ -135,8 +135,13 @@ fi
 mkdir -p "$OUTBASE" "$LOGDIR"
 
 if [[ ! -x "$STRUCTURE_BIN" ]]; then
-  echo "ERROR: STRUCTURE binary not found or not executable: $STRUCTURE_BIN" >&2
-  echo "       On macOS/Linux try: chmod +x structure" >&2
+  echo "ERROR: STRUCTURE program not found or not executable: $STRUCTURE_BIN" >&2
+  echo "       STRUCTURE is not bundled. Download the package 'without front end' for" >&2
+  echo "       your system from" >&2
+  echo "       https://web.stanford.edu/group/pritchardlab/structure_software/release_versions/v2.3.4/html/structure.html" >&2
+  echo "       and copy the program into this folder, or set STRUCTURE_BIN=/path/to/structure" >&2
+  echo "       (see 'Installing STRUCTURE' in README.md)." >&2
+  echo "       If the file is already here, on macOS/Linux run: chmod +x structure" >&2
   exit 1
 fi
 
