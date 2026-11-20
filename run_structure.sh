@@ -157,15 +157,23 @@ TASK_ID="${TASK_ID:-}"
 # single-task mode each task writes its own copy to avoid clobbering each other.
 if [[ -n "$TASK_ID" ]]; then
   RUN_MAINPARAMS="${OUTBASE}/mainparams.used.task${TASK_ID}"
+  RUN_EXTRAPARAMS="${OUTBASE}/extraparams.used.task${TASK_ID}"
 else
   RUN_MAINPARAMS="${OUTBASE}/mainparams.used"
+  RUN_EXTRAPARAMS="${OUTBASE}/extraparams.used"
 fi
+# STRUCTURE uses the -D seed only when RANDOMIZE is 0. With RANDOMIZE 1, its default,
+# it seeds from the system clock and ignores -D, so tasks started in the same second
+# run identical chains and BASESEED cannot reproduce a run. RANDOMIZE is therefore
+# removed from both configs and set to 0 in the extraparams copy passed to STRUCTURE.
 sed -E \
   -e "s|^#define[[:space:]]+INFILE[[:space:]]+.*$|#define INFILE ${INFILE}|" \
   -e "s|^#define[[:space:]]+NUMINDS[[:space:]]+.*$|#define NUMINDS ${NUMINDS}|" \
   -e "s|^#define[[:space:]]+NUMLOCI[[:space:]]+.*$|#define NUMLOCI ${NUMLOCI}|" \
   -e "s|^#define[[:space:]]+MAXPOPS[[:space:]]+.*$|#define MAXPOPS ${N_K}|" \
+  -e "/^#define[[:space:]]+RANDOMIZE([[:space:]]|$)/d" \
   "$MAINPARAMS" > "$RUN_MAINPARAMS"
+{ grep -Ev "^#define[[:space:]]+RANDOMIZE([[:space:]]|$)" "$EXTRAPARAMS" || true; printf '\n#define RANDOMIZE 0\n'; } > "$RUN_EXTRAPARAMS"
 
 TOTAL_TASKS=$(( N_K * N_REP ))
 
@@ -179,7 +187,7 @@ echo "TOTAL_TASKS:   $TOTAL_TASKS"
 echo "STRUCTURE_BIN: $STRUCTURE_BIN"
 echo "OUTBASE:       $OUTBASE"
 echo "LOGDIR:        $LOGDIR"
-echo "BASESEED:      $BASESEED"
+echo "BASESEED:      $BASESEED   (RANDOMIZE forced to 0 so task t uses BASESEED + t)"
 echo "Start:         $(date)"
 echo
 
@@ -213,7 +221,7 @@ run_task() {
 
   echo "Task=${TASK}/${TOTAL_TASKS}  K=${K}  REP=${REP}  SEED=${SEED}"
 
-  "$STRUCTURE_BIN" -m "$RUN_MAINPARAMS" -e "$EXTRAPARAMS" \
+  "$STRUCTURE_BIN" -m "$RUN_MAINPARAMS" -e "$RUN_EXTRAPARAMS" \
     -K "$K" -o "$OUTPREFIX" -D "$SEED" \
     >"$OUTLOG" 2>"$ERRLOG"
 }
@@ -225,7 +233,7 @@ if [[ -n "$TASK_ID" ]]; then
     exit 1
   fi
   run_task "$TASK_ID"
-  rm -f "$RUN_MAINPARAMS"          # per-task copy no longer needed
+  rm -f "$RUN_MAINPARAMS" "$RUN_EXTRAPARAMS"   # per-task copies no longer needed
   echo "Task ${TASK_ID} finished. End: $(date)"
   exit 0
 fi

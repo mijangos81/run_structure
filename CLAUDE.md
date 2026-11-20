@@ -24,7 +24,7 @@ sed -E 's/^#define BURNIN .*/#define BURNIN 200/; s/^#define NUMREPS .*/#define 
 MAINPARAMS=/tmp/mp.fast OUTBASE=./output_test LOGDIR=./logs_test N_K=2 N_REP=1 ./run_structure.sh 2
 ```
 
-Each run writes `output_str/K<K>_rep<REP>_seed<SEED>_f` (the STRUCTURE result file used for downstream Evanno/ΔK + plotting), per-job logs to `logs_structure/`, and `output_str/mainparams.used` (the exact config used). `output_*/` and `logs_*/` are run artifacts, not source.
+Each run writes `output_str/K<K>_rep<REP>_seed<SEED>_f` (the STRUCTURE result file used for downstream Evanno/ΔK + plotting), per-job logs to `logs_structure/`, and `output_str/mainparams.used` + `output_str/extraparams.used` (the exact configs used). `output_*/` and `logs_*/` are run artifacts, not source.
 
 ## How the generalisation works (the key design)
 
@@ -36,10 +36,10 @@ Each run writes `output_str/K<K>_rep<REP>_seed<SEED>_f` (the STRUCTURE result fi
    - `NUMINDS = (NROWS − HEADERROWS) / (ONEROWPERIND ? 1 : 2)`
    - `NUMLOCI = ncols(first data row) − (LABEL + POPDATA + POPFLAG + LOCDATA + PHENOTYPE + EXTRACOLS)` — column count is taken from the first row *after* the header (a marker-name row has no lead columns, so counting it would undercount loci).
    - All honour env overrides (`NUMINDS`, `NUMLOCI`, `LEADCOLS`, `HEADERROWS`).
-3. **Non-destructive runtime config** — generates `output_str/mainparams.used` from the committed `mainparams` template with INFILE/NUMINDS/NUMLOCI/MAXPOPS substituted, and passes it to STRUCTURE via `-m` (with `-e extraparams`). The committed `mainparams` is never mutated — keep it that way.
+3. **Non-destructive runtime config** — generates `output_str/mainparams.used` from the committed `mainparams` template with INFILE/NUMINDS/NUMLOCI/MAXPOPS substituted, and passes it to STRUCTURE via `-m` (with `-e output_str/extraparams.used`, see 5). The committed `mainparams` is never mutated — keep it that way.
 4. **OS detection** — selects `./structure` (macOS/Linux/WSL) or `./structure.exe` (Git Bash/MSYS/Cygwin), overridable via `STRUCTURE_BIN`.
-5. **Seeds** — per-task seed is `BASESEED + task` (passed via `-D`); the chosen `BASESEED` is written to `output_str/seed.txt` each run so it can be reproduced (`BASESEED=$(cat output_str/seed.txt) ...`).
-6. **Single-task mode** — if `TASK_ID` is set, the script runs exactly that one task (writing its own `mainparams.used.task<id>` to avoid races, and skipping the `seed.txt` write) instead of the local parallel loop. This is the seam the HPC array job uses.
+5. **Seeds** — per-task seed is `BASESEED + task` (passed via `-D`); the chosen `BASESEED` is written to `output_str/seed.txt` each run so it can be reproduced (`BASESEED=$(cat output_str/seed.txt) ...`). `-D` only takes effect with `RANDOMIZE 0`: under STRUCTURE's default `RANDOMIZE 1` the seed comes from the clock, so tasks launched in the same second are identical replicates. The script therefore strips any `RANDOMIZE` line from both configs and passes `output_str/extraparams.used` (the user's `extraparams` + `#define RANDOMIZE 0`) via `-e`. Keep that invariant; verify with `grep SEED= output_str/*_f` (must equal the seed in each file name).
+6. **Single-task mode** — if `TASK_ID` is set, the script runs exactly that one task (writing its own `mainparams.used.task<id>` and `extraparams.used.task<id>` to avoid races, and skipping the `seed.txt` write) instead of the local parallel loop. This is the seam the HPC array job uses.
 
 ## HPC (`run_structure.slurm`)
 
