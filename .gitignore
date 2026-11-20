@@ -18,9 +18,10 @@
 *.pdf
 *.docx
 !articles/*.pdf
-!reports/*.pdf
-!reports/*.docx
-!reports/*.html
+
+# Personal working files (kept locally, not published)
+KNOWLEDGE.md
+reports/
 
 # STRUCTURE run artifacts
 output_str/

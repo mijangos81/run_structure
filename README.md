@@ -5,8 +5,9 @@ This folder runs [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structu
 parallel on a single computer. It works on macOS, Linux, and Windows (via Git
 Bash). No installation is needed — the STRUCTURE binaries are included.
 
-A bundled example input (`platypus.str`, generated from the `platypus.gl`
-dataset — 81 individuals, 1000 SNPs, 3 populations) lets you run it immediately.
+A bundled example input (`platypus.str`, generated from `platypus.gl`, the
+platypus test dataset in the `dartR.data` R package — 81 individuals, 1000 SNPs,
+3 populations) lets you run it immediately.
 
 ## What's in this folder
 
@@ -191,3 +192,22 @@ per task.
   are independent. Fix `BASESEED` to reproduce a whole run.
 - Runtime depends mostly on `BURNIN` + `NUMREPS` (in `mainparams`), the number
   of loci, and how many jobs run concurrently.
+
+## Citing
+
+Results produced with this toolkit come from STRUCTURE, so cite STRUCTURE. The
+bundled `extraparams` runs the admixture model with correlated allele
+frequencies (`FREQSCORR 1`), which needs both of these:
+
+- Pritchard, J. K., Stephens, M., & Donnelly, P. (2000). Inference of population
+  structure using multilocus genotype data. *Genetics*, 155(2), 945–959.
+  https://doi.org/10.1093/genetics/155.2.945
+- Falush, D., Stephens, M., & Pritchard, J. K. (2003). Inference of population
+  structure using multilocus genotype data: linked loci and correlated allele
+  frequencies. *Genetics*, 164(4), 1567–1587.
+  https://doi.org/10.1093/genetics/164.4.1567
+
+If you switch on another model (for example `LOCPRIOR`, or dominant markers via
+`RECESSIVEALLELES`), the STRUCTURE manual lists the paper to cite for it. If you
+built your input with `scripts/prepare_structure_input.R`, also cite dartR: run
+`citation("dartR.base")` in R for the references.

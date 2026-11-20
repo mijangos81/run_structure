@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A portable, dataset-agnostic toolkit to run Pritchard's **STRUCTURE** for a K × replicate sweep on a single machine (macOS / Linux / Windows Git Bash). The whole tool is the Bash launcher `run_structure.sh` plus STRUCTURE's two config files; the STRUCTURE binaries are committed so no installation is needed. This is a standalone CLI tool, not an R/dartRverse analysis project (the empty `articles/`, `data/`, `scripts/`, etc. folders come from the project skeleton and are unused by the tool itself).
 
+`KNOWLEDGE.md` and `reports/` are personal working files: gitignored and kept only locally, because the repo is being prepared for public release. Write to them as usual, but do not `git add -f` them.
+
 ## Running it
 
 From the repo root (the tool expects to run from the folder containing the `.str` file and binaries):
